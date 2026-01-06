@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Career Advisor - Expert System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css"
+    />
+    <style>
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.4s ease-out;
+      }
+      .animate-bounce-short {
+        animation: bounce 0.5s ease-in-out 1;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useMemo } = React;
+
+      const Icons = {
+        Brain: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+            <path d="M15 13a4.5 4.5 0 0 1-3-1.426A4.5 4.5 0 0 1 9 13" />
+          </svg>
+        ),
+        Play: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        ),
+        RotateCcw: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+        ),
+        CheckCircle: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        ),
+        AlertTriangle: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        ),
+        Trophy: () => (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+            <path d="M4 22h16"></path>
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+          </svg>
+        ),
+      };
+
+      const FACT_LABELS = {
+        interest_tech: "Interest: Technology",
+        interest_art: "Interest: Art & Design",
+        interest_science: "Interest: Science",
+        interest_people: "Interest: Helping People",
+        interest_business: "Interest: Business",
+        skill_coding: "Skill: Coding/Logic",
+        skill_drawing: "Skill: Drawing/Visuals",
+        skill_math: "Skill: Math/Stats",
+        skill_communication: "Skill: Communication",
+        skill_management: "Skill: Management",
+        skill_writing: "Skill: Writing",
+        skill_empathy: "Skill: Empathy",
+
+        profile_creative: "Profile: Creative",
+        profile_analytical: "Profile: Analytical",
+        profile_social: "Profile: Social/People-Oriented",
+        profile_leader: "Profile: Leader",
+
+        career_software_engineer: "Career: Software Engineer",
+        career_ux_designer: "Career: UX Designer",
+        career_data_scientist: "Career: Data Scientist",
+        career_product_manager: "Career: Product Manager",
+        career_teacher: "Career: Tech Educator",
+        career_marketing_specialist: "Career: Marketing Specialist",
+        career_tech_blogger: "Career: Tech Blogger",
+        career_visual_designer: "Career: Visual Designer",
+        career_scrum_master: "Career: Scrum Master",
+        career_qa_tester: "Career: QA Tester",
+        career_researcher: "Career: Science Researcher",
+      };
+
+      const RULES = [
+        {
+          id: "R1",
+          conditions: ["interest_tech", "skill_coding"],
+          conclusion: "profile_analytical",
+          type: "profile",
+        },
+        {
+          id: "R2",
+          conditions: ["interest_art", "skill_drawing"],
+          conclusion: "profile_creative",
+          type: "profile",
+        },
+        {
+          id: "R3",
+          conditions: ["interest_people", "skill_communication"],
+          conclusion: "profile_social",
+          type: "profile",
+        },
+        {
+          id: "R4",
+          conditions: ["interest_business", "skill_management"],
+          conclusion: "profile_leader",
+          type: "profile",
+        },
+
+        {
+          id: "R5",
+          conditions: ["profile_analytical", "interest_science"],
+          conclusion: "career_data_scientist",
+          type: "career",
+        },
+        {
+          id: "R6",
+          conditions: ["profile_creative", "skill_writing"],
+          conclusion: "career_marketing_specialist",
+          type: "career",
+        },
+        {
+          id: "R7",
+          conditions: ["profile_social", "interest_tech"],
+          conclusion: "career_teacher",
+          type: "career",
+        },
+
+        {
+          id: "R8",
+          conditions: [
+            "profile_analytical",
+            "profile_creative",
+            "skill_coding",
+          ],
+          conclusion: "career_software_engineer",
+          type: "career",
+        },
+        {
+          id: "R9",
+          conditions: ["profile_creative", "interest_tech", "skill_empathy"],
+          conclusion: "career_ux_designer",
+          type: "career",
+        },
+        {
+          id: "R10",
+          conditions: ["profile_leader", "profile_analytical", "interest_tech"],
+          conclusion: "career_product_manager",
+          type: "career",
+        },
+
+        {
+          id: "R11",
+          conditions: ["interest_tech", "skill_writing"],
+          conclusion: "career_tech_blogger",
+          type: "career",
+        },
+        {
+          id: "R12",
+          conditions: ["interest_art", "skill_coding"],
+          conclusion: "career_visual_designer",
+          type: "career",
+        },
+        {
+          id: "R13",
+          conditions: ["interest_people", "skill_management"],
+          conclusion: "career_scrum_master",
+          type: "career",
+        },
+        {
+          id: "R14",
+          conditions: ["interest_tech", "skill_math"],
+          conclusion: "career_qa_tester",
+          type: "career",
+        },
+        {
+          id: "R15",
+          conditions: ["interest_science", "skill_writing"],
+          conclusion: "career_researcher",
+          type: "career",
+        },
+      ];
+
+      const RuleCard = ({ rule, isActive }) => {
+        return (
+          <div
+            className={`p-3 rounded-lg border-l-4 text-sm transition-all duration-300 ${
+              isActive
+                ? "bg-blue-50 border-blue-500 shadow-sm"
+                : "bg-white border-gray-200 opacity-80"
+            }`}
+          >
+            <div className="font-bold flex justify-between">
+              <span>{rule.id}</span>
+              {isActive && (
+                <Icons.CheckCircle className="text-blue-500 w-4 h-4" />
+              )}
+            </div>
+            <div className="mt-1">
+              <span className="text-purple-600 font-semibold">IF</span>{" "}
+              {rule.conditions.join(" AND ")}
+            </div>
+            <div>
+              <span className="text-green-600 font-semibold">THEN</span>{" "}
+              <span className="font-medium">{rule.conclusion}</span>
+            </div>
+          </div>
+        );
+      };
+
+      const App = () => {
+        const [facts, setFacts] = useState(new Set());
+        const [mode, setMode] = useState("forward");
+        const [trace, setTrace] = useState([]);
+        const [isRunning, setIsRunning] = useState(false);
+        const [conflictLog, setConflictLog] = useState([]);
+        const [finalRecommendation, setFinalRecommendation] = useState(null);
+
+        const [targetGoal, setTargetGoal] = useState("career_ux_designer");
+
+        const reset = () => {
+          setFacts((prev) => {
+            const newFacts = new Set();
+            Array.from(prev).forEach((f) => {
+              if (f.startsWith("interest_") || f.startsWith("skill_")) {
+                newFacts.add(f);
+              }
+            });
+            return newFacts;
+          });
+          setTrace([]);
+          setConflictLog([]);
+          setFinalRecommendation(null);
+          setIsRunning(false);
+        };
+
+        const toggleFact = (factKey) => {
+          if (isRunning) return;
+          const newFacts = new Set(facts);
+          if (newFacts.has(factKey)) {
+            newFacts.delete(factKey);
+          } else {
+            newFacts.add(factKey);
+          }
+          setFacts(newFacts);
+
+          setTrace([]);
+          setConflictLog([]);
+          setFinalRecommendation(null);
+        };
+
+        const runForwardChaining = async () => {
+          setIsRunning(true);
+          setTrace([]);
+          setConflictLog([]);
+          setFinalRecommendation(null);
+
+          let workingMemory = new Set(facts);
+          let newTrace = [];
+          let cycle = 0;
+          let potentialCareers = [];
+
+          const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+          try {
+            let rulesFired = true;
+            while (rulesFired) {
+              cycle++;
+              rulesFired = false;
+              let cycleRules = [];
+
+              for (const rule of RULES) {
+                if (workingMemory.has(rule.conclusion)) continue;
+
+                const conditionsMet = rule.conditions.every((c) =>
+                  workingMemory.has(c)
+                );
+
+                if (conditionsMet) {
+                  cycleRules.push(rule);
+                }
+              }
+
+              if (cycleRules.length > 0) {
+                rulesFired = true;
+                cycleRules.sort(
+                  (a, b) => b.conditions.length - a.conditions.length
+                );
+
+                for (const rule of cycleRules) {
+                  workingMemory.add(rule.conclusion);
+                  newTrace.push({
+                    cycle,
+                    rule: rule.id,
+                    msg: `${rule.id} fired! Derived: ${rule.conclusion}`,
+                    specificity: rule.conditions.length,
+                  });
+
+                  if (rule.type === "career") {
+                    potentialCareers.push({
+                      career: rule.conclusion,
+                      score: rule.conditions.length,
+                    });
+                  }
+
+                  setTrace([...newTrace]);
+                  setFacts(new Set(workingMemory));
+                  await delay(600);
+                }
+              }
+            }
+
+            if (potentialCareers.length > 0) {
+              potentialCareers.sort((a, b) => b.score - a.score);
+              const winner = potentialCareers[0];
+
+              const ties = potentialCareers.filter(
+                (c) => c.score === winner.score
+              );
+
+              if (ties.length > 1) {
+                setConflictLog([
+                  `Conflict detected: ${ties
+                    .map((t) => t.career)
+                    .join(", ")} have same specificity score (${
+                    winner.score
+                  }). Defaulting to ${winner.career}.`,
+                ]);
+              } else if (potentialCareers.length > 1) {
+                setConflictLog([
+                  `Resolution: ${winner.career} selected over others due to higher specificity (${winner.score} conditions).`,
+                ]);
+              }
+
+              setFinalRecommendation(winner.career);
+            } else {
+              setFinalRecommendation(
+                "No matching career found. Try selecting more skills!"
+              );
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            setIsRunning(false);
+          }
+        };
+
+        const runBackwardChaining = async () => {
+          setIsRunning(true);
+          setTrace([]);
+          setConflictLog([]);
+
+          let workingMemory = new Set(facts);
+          let newTrace = [];
+
+          const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+          const prove = async (goal, depth = 0) => {
+            const indent = "  ".repeat(depth);
+
+            if (workingMemory.has(goal)) {
+              newTrace.push({
+                type: "success",
+                depth,
+                msg: `${goal} is already a known FACT.`,
+              });
+              setTrace([...newTrace]);
+              await delay(400);
+              return true;
+            }
+
+            const matchingRules = RULES.filter((r) => r.conclusion === goal);
+            if (matchingRules.length === 0) {
+              if (goal.startsWith("interest_") || goal.startsWith("skill_")) {
+                newTrace.push({
+                  type: "failure",
+                  depth,
+                  msg: `Missing Input: You need to select '${
+                    FACT_LABELS[goal] || goal
+                  }'`,
+                });
+              } else {
+                newTrace.push({
+                  type: "failure",
+                  depth,
+                  msg: `No rules found to conclude ${goal}.`,
+                });
+              }
+              setTrace([...newTrace]);
+              await delay(400);
+              return false;
+            }
+
+            for (const rule of matchingRules) {
+              newTrace.push({
+                type: "attempt",
+                depth,
+                msg: `Trying Rule ${
+                  rule.id
+                } to prove ${goal}... Needs: ${rule.conditions.join(", ")}`,
+              });
+              setTrace([...newTrace]);
+              await delay(400);
+
+              let allConditionsMet = true;
+
+              for (const condition of rule.conditions) {
+                const result = await prove(condition, depth + 1);
+                if (!result) {
+                  allConditionsMet = false;
+                  break;
+                }
+              }
+
+              if (allConditionsMet) {
+                workingMemory.add(goal);
+                newTrace.push({
+                  type: "success",
+                  depth,
+                  msg: `Rule ${rule.id} satisfied! ${goal} is TRUE.`,
+                });
+                setTrace([...newTrace]);
+                await delay(400);
+                return true;
+              }
+            }
+
+            newTrace.push({
+              type: "failure",
+              depth,
+              msg: `Failed to prove ${goal} from any rule.`,
+            });
+            setTrace([...newTrace]);
+            await delay(400);
+            return false;
+          };
+
+          await prove(targetGoal);
+          setIsRunning(false);
+        };
+
+        const inputFacts = Object.keys(FACT_LABELS).filter(
+          (k) => k.startsWith("interest_") || k.startsWith("skill_")
+        );
+
+        return (
+          <div className="max-w-6xl mx-auto p-6 space-y-8">
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl font-bold text-gray-900">
+                CareerPath AI Advisor
+              </h1>
+              <p className="text-gray-600">
+                Rule-Based Expert System for Career Guidance
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Icons.CheckCircle /> 1. Select Your Profile
+                  </h2>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        Interests
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {inputFacts
+                          .filter((f) => f.startsWith("interest_"))
+                          .map((f) => (
+                            <button
+                              key={f}
+                              onClick={() => toggleFact(f)}
+                              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                                facts.has(f)
+                                  ? "bg-blue-600 text-white shadow-md"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              {FACT_LABELS[f].replace("Interest: ", "")}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        Skills
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {inputFacts
+                          .filter((f) => f.startsWith("skill_"))
+                          .map((f) => (
+                            <button
+                              key={f}
+                              onClick={() => toggleFact(f)}
+                              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                                facts.has(f)
+                                  ? "bg-purple-600 text-white shadow-md"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              {FACT_LABELS[f].replace("Skill: ", "")}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Icons.Play /> 2. Run Inference
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div className="flex p-1 bg-gray-100 rounded-lg">
+                      <button
+                        onClick={() => {
+                          setMode("forward");
+                          reset();
+                        }}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
+                          mode === "forward"
+                            ? "bg-white shadow-sm text-blue-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        Forward (Explore)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMode("backward");
+                          reset();
+                        }}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
+                          mode === "backward"
+                            ? "bg-white shadow-sm text-purple-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        Backward (Validate)
+                      </button>
+                    </div>
+
+                    {mode === "backward" && (
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <label className="block text-xs font-bold text-purple-700 mb-1">
+                          Target Goal:
+                        </label>
+                        <select
+                          className="w-full text-sm p-2 rounded border border-purple-200"
+                          value={targetGoal}
+                          onChange={(e) => setTargetGoal(e.target.value)}
+                        >
+                          {Object.keys(FACT_LABELS)
+                            .filter((k) => k.startsWith("career_"))
+                            .map((k) => (
+                              <option key={k} value={k}>
+                                {FACT_LABELS[k]}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={
+                          mode === "forward"
+                            ? runForwardChaining
+                            : runBackwardChaining
+                        }
+                        disabled={isRunning}
+                        className={`flex-1 py-3 rounded-lg font-bold text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          mode === "forward"
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600"
+                            : "bg-gradient-to-r from-purple-600 to-pink-600"
+                        }`}
+                      >
+                        {isRunning ? "Thinking..." : "Start Recommendation"}
+                      </button>
+                      <button
+                        onClick={reset}
+                        className="px-4 py-3 bg-gray-200 rounded-lg text-gray-700 font-medium hover:bg-gray-300 transition"
+                      >
+                        <Icons.RotateCcw />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-h-96 overflow-y-auto">
+                  <h2 className="text-lg font-bold mb-4 sticky top-0 bg-white pb-2 border-b">
+                    Active Rules Base{" "}
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {RULES.map((rule) => (
+                      <RuleCard
+                        key={rule.id}
+                        rule={rule}
+                        isActive={trace.some((t) => {
+                          if (mode === "forward") return t.rule === rule.id;
+                          return (
+                            t.msg && t.msg.includes(`Rule ${rule.id} satisfied`)
+                          );
+                        })}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-slate-900 text-slate-100 rounded-xl p-6 min-h-[300px] flex flex-col">
+                    <h2 className="font-mono font-bold mb-4 text-green-400 border-b border-gray-700 pb-2 flex justify-between">
+                      <span>&gt; SYSTEM_LOG</span>
+                      <span className="text-xs text-gray-500">
+                        {mode.toUpperCase()}_CHAINING
+                      </span>
+                    </h2>
+                    <div className="flex-1 font-mono text-xs space-y-2 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+                      {trace.length === 0 && (
+                        <span className="text-gray-500 italic">
+                          Waiting for input...
+                        </span>
+                      )}
+                      {trace.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`animate-fade-in ${
+                            item.type === "failure"
+                              ? "text-red-400"
+                              : item.type === "success"
+                              ? "text-green-400"
+                              : "text-blue-300"
+                          }`}
+                        >
+                          {mode === "forward" ? (
+                            <span>
+                              <span className="text-gray-500">
+                                [{item.cycle}]
+                              </span>{" "}
+                              {item.msg}
+                            </span>
+                          ) : (
+                            <span style={{ paddingLeft: item.depth * 12 }}>
+                              {item.msg}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <Icons.Trophy /> Final Recommendation
+                    </h2>
+
+                    <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                      {finalRecommendation ? (
+                        <div className="animate-bounce-short">
+                          <div className="text-3xl mb-2">🎉</div>
+                          <div className="text-xl font-bold text-gray-900 mb-1">
+                            {FACT_LABELS[finalRecommendation] ||
+                              finalRecommendation}
+                          </div>
+                          <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full inline-block mt-2 font-medium">
+                            Confidence: High (Based on Rule Specificity)
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400">
+                          {mode === "backward"
+                            ? "Run validation to check if you qualify."
+                            : "Run inference to see results."}
+                        </div>
+                      )}
+                    </div>
+
+                    {conflictLog.length > 0 && (
+                      <div className="mt-4 bg-orange-50 p-3 rounded text-xs text-orange-800 border-l-2 border-orange-500">
+                        <div className="font-bold flex items-center gap-1">
+                          <Icons.AlertTriangle className="w-3 h-3" /> Conflict
+                          Resolution Event:
+                        </div>
+                        {conflictLog.map((log, i) => (
+                          <div key={i}>{log}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center text-xs text-gray-400 mt-12 mb-4">
+              AI Expert System Demo • {RULES.length} Rules •{" "}
+              {Object.keys(FACT_LABELS).length} Facts
+            </div>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
